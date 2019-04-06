@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/Login_item"
+        android:title="Login"/>
+    <item
+        android:id="@+id/User_Center"
+        android:title="UserCenter"/>
+</menu>
