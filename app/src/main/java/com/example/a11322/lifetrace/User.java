@@ -1,9 +1,6 @@
 package com.example.a11322.lifetrace;
 
-import org.litepal.LitePal;
-import org.litepal.crud.LitePalSupport;
-
-public class User extends LitePalSupport {
+public class User{
     private String name;
     private String email;
     private String phonenumber;
