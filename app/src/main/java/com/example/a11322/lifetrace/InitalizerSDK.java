@@ -11,5 +11,6 @@ public class InitalizerSDK extends Application {
         super.onCreate();
         SDKInitializer.initialize(this);
         SDKInitializer.setCoordType(CoordType.BD09LL);
+        SDKInitializer.setHttpsEnable(true);
     }
 }
