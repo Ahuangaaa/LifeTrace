@@ -64,6 +64,23 @@ import com.baidu.mapapi.search.poi.PoiNearbySearchOption;
 import com.baidu.mapapi.search.poi.PoiResult;
 import com.baidu.mapapi.search.poi.PoiSearch;
 import com.baidu.mapapi.search.poi.PoiSortType;
+import com.baidu.mapapi.search.route.BikingRouteLine;
+import com.baidu.mapapi.search.route.BikingRoutePlanOption;
+import com.baidu.mapapi.search.route.BikingRouteResult;
+import com.baidu.mapapi.search.route.DrivingRouteLine;
+import com.baidu.mapapi.search.route.DrivingRoutePlanOption;
+import com.baidu.mapapi.search.route.DrivingRouteResult;
+import com.baidu.mapapi.search.route.IndoorRouteResult;
+import com.baidu.mapapi.search.route.MassTransitRouteResult;
+import com.baidu.mapapi.search.route.OnGetRoutePlanResultListener;
+import com.baidu.mapapi.search.route.PlanNode;
+import com.baidu.mapapi.search.route.RoutePlanSearch;
+import com.baidu.mapapi.search.route.TransitRouteLine;
+import com.baidu.mapapi.search.route.TransitRoutePlanOption;
+import com.baidu.mapapi.search.route.TransitRouteResult;
+import com.baidu.mapapi.search.route.WalkingRouteLine;
+import com.baidu.mapapi.search.route.WalkingRoutePlanOption;
+import com.baidu.mapapi.search.route.WalkingRouteResult;
 import com.baidu.mapapi.search.sug.OnGetSuggestionResultListener;
 import com.baidu.mapapi.search.sug.SuggestionResult;
 import com.baidu.mapapi.search.sug.SuggestionSearch;
@@ -73,17 +90,18 @@ import com.baidu.mapapi.overlayutil.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener,OnGetPoiSearchResultListener,OnGetSuggestionResultListener{
+public class MainActivity extends AppCompatActivity implements SensorEventListener,OnGetPoiSearchResultListener,OnGetSuggestionResultListener,OnGetRoutePlanResultListener {
     User user = new User();
     private MapView mMapView =null;
     private BaiduMap mBaiduMap;
     private LocationClient mLocationClient;
     public MyLocationListenner myListener = new MyLocationListenner();
     private LocationMode mCurrentMode;
-    BitmapDescriptor mCurrentMarker;
+    private BitmapDescriptor mCurrentMarker;
     private static final int accuracyCircleFillColor = 0xAAFFFF88;
     private static final int accuracyCircleStrokeColor = 0xAA00FF00;
     private SensorManager mSensorManager;
+    int nodeIndex = -1; // 节点索引,供浏览节点时使用
     private Double lastX = 0.0;
     private int mCurrentDirection = 0;
     private double mCurrentLat = 0.0;
@@ -97,16 +115,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Button search;
     private Button searchNearby;
     private Button searcbound;
+    private Button rounte;
+    private PlanNode stNode;
+    private PlanNode enNode;
+    private String start;
+    private String terminal;
+    private String city;
     private AutoCompleteTextView keyWorldsView = null;
     private ArrayAdapter<String> sugAdapter = null;
     private int loadIndex = 0;
-
-    private LatLng center = new LatLng(39.92235, 116.380338);
+    private RoutePlanSearch mSearch = null;
+    private LatLng center ;
     private int radius = 100;
-    private LatLng southwest = new LatLng( 39.92235, 116.380338 );
-    private LatLng northeast = new LatLng( 39.947246, 116.414977);
-    private LatLngBounds searchBound = new LatLngBounds.Builder().include(southwest).include(northeast).build();
-
+    private LatLng southwest;
+    private LatLng northeast;
+    private LatLngBounds searchBound;
     private int searchType = 0;//搜索的类型，在显示时区分
     // UI相关
     boolean isFirstLoc = true; // 是否首次定位
@@ -121,14 +144,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);//获取传感器管理服务
         mCurrentMode = LocationMode.NORMAL;
         mCurrentMarker = BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground);
-        mBaiduMap.setMyLocationConfiguration(new MyLocationConfiguration(mCurrentMode,true,mCurrentMarker,accuracyCircleFillColor,accuracyCircleStrokeColor));
+        mBaiduMap.setMyLocationConfiguration(new MyLocationConfiguration(mCurrentMode, true, mCurrentMarker, accuracyCircleFillColor, accuracyCircleStrokeColor));
         Button popupbutton = (Button) findViewById(R.id.popupbutton);
         popupbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showPopWindow();
             }
-        });;
+        });
+        ;
         mBaiduMap.setMyLocationEnabled(true);
         //定位初始化
         mLocationClient = new LocationClient(this);
@@ -146,17 +170,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //开启地图定位图层
         mLocationClient.start();
 
+
         //Poi  初始化搜索模块
         mPoiSearch = PoiSearch.newInstance();
         mPoiSearch.setOnGetPoiSearchResultListener(this);
+
+        //创建路线规划检索
+        mSearch = RoutePlanSearch.newInstance();
+        mSearch.setOnGetRoutePlanResultListener(this);
+
 
         editCity = (EditText) findViewById(R.id.city);
         keyWorldsView = (AutoCompleteTextView) findViewById(R.id.searchkey);
 
         search = (Button) findViewById(R.id.search);
-        search.setOnClickListener(new View.OnClickListener(){
+        search.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v){
+            public void onClick(View v) {
                 searchButtonProcess(v);
             }
         });
@@ -172,6 +202,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onClick(View v) {
                 searchBoundProcess(v);
+            }
+        });
+        rounte = (Button) findViewById(R.id.routebutton);
+        rounte.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this,SearchActivity.class);
+                startActivityForResult(intent,2);
+            }
+        });
+
+        //Sug检索
+        mSuggestionSearch = SuggestionSearch.newInstance();
+        mSuggestionSearch.setOnGetSuggestionResultListener(this);
+        //当关键字变化是动态添加建议列表
+        keyWorldsView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable arg0) {
+
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence arg0, int arg1, int arg2, int arg3) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence cs, int arg1, int arg2, int arg3) {
+                if (cs.length() <= 0) {
+                    return;
+                }
+
+                /* 使用建议搜索服务获取建议列表，结果在onSuggestionResult()中更新 */
+                mSuggestionSearch.requestSuggestion((new SuggestionSearchOption())
+                        .keyword(cs.toString())
+                        .city(editCity.getText().toString()));
             }
         });
     }
@@ -206,6 +272,72 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     user.setEmail(data.getStringExtra("UserEmail"));
                     user.setPhonenumber(data.getStringExtra("UserPhone"));
                 }
+                break;
+            case 2:if (resultCode == RESULT_OK) {
+                start = data.getStringExtra("start");
+                terminal = data.getStringExtra("terminal");
+                city = data.getStringExtra("city");
+                Log.d("MainActivity",data.getStringExtra("way")+data.getStringExtra("strategy")+city+start+terminal);
+                switch (data.getStringExtra("way")) {
+                    case "walk":
+                        mBaiduMap.clear();
+                        stNode = PlanNode.withCityNameAndPlaceName(city, start);
+                        enNode = PlanNode.withCityNameAndPlaceName(city,terminal);
+                        mSearch.walkingSearch((new WalkingRoutePlanOption()).from(stNode).to(enNode));
+                        break;
+                    case "bike":
+                        mBaiduMap.clear();
+                        stNode = PlanNode.withCityNameAndPlaceName(city, start);
+                        enNode = PlanNode.withCityNameAndPlaceName(city, terminal);
+                        mSearch.bikingSearch((new BikingRoutePlanOption()).from(stNode).to(enNode).ridingType(0));
+                        break;
+                    case "transit":
+                        mBaiduMap.clear();
+                        stNode = PlanNode.withCityNameAndPlaceName(city, start);
+                        enNode = PlanNode.withCityNameAndPlaceName(city, terminal);
+                        TransitRoutePlanOption transitRoutePlanOption = new TransitRoutePlanOption();
+                        switch (data.getStringExtra("strategy")){
+                            case "NoSubway":
+                                transitRoutePlanOption.policy(TransitRoutePlanOption.TransitPolicy.EBUS_NO_SUBWAY);
+                                break;
+                            case "TimeFirst2":
+                                transitRoutePlanOption.policy(TransitRoutePlanOption.TransitPolicy.EBUS_TIME_FIRST);
+                                break;
+                            case "TransferFirst":
+                                transitRoutePlanOption.policy(TransitRoutePlanOption.TransitPolicy.EBUS_TRANSFER_FIRST);
+                                break;
+                            case "WalkFirst":
+                                transitRoutePlanOption.policy(TransitRoutePlanOption.TransitPolicy.EBUS_WALK_FIRST);
+                                break;
+                            default:
+                        }
+                        mSearch.transitSearch(transitRoutePlanOption.from(stNode).to(enNode).city(data.getStringExtra("city")));
+                        break;
+                    case "drive":
+                        mBaiduMap.clear();
+                        stNode = PlanNode.withCityNameAndPlaceName(city, start);
+                        enNode = PlanNode.withCityNameAndPlaceName(city, terminal);
+                        DrivingRoutePlanOption drivingRoutePlanOption = new DrivingRoutePlanOption();
+                        switch (data.getStringExtra("strategy")){
+                            case "AvoidCongestion":
+                                drivingRoutePlanOption.policy(DrivingRoutePlanOption.DrivingPolicy.ECAR_AVOID_JAM);
+                                break;
+                            case "TimeFirst":
+                                drivingRoutePlanOption.policy(DrivingRoutePlanOption.DrivingPolicy.ECAR_TIME_FIRST);
+                                break;
+                            case "ShortestDistance":
+                                drivingRoutePlanOption.policy(DrivingRoutePlanOption.DrivingPolicy.ECAR_DIS_FIRST);
+                                break;
+                            case "FewerExpense":
+                                drivingRoutePlanOption.policy(DrivingRoutePlanOption.DrivingPolicy.ECAR_FEE_FIRST);
+                                break;
+                             default:
+                        }
+                        mSearch.drivingSearch(drivingRoutePlanOption.from(stNode).to(enNode));
+                        break;
+                    default:
+                }
+            }
         }
     }
 
@@ -234,10 +366,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mLocationClient.stop();
         //关闭定位层
         mBaiduMap.setMyLocationEnabled(false);
+        mSuggestionSearch.destroy();
         mMapView.onDestroy();
         mMapView = null;
         mPoiSearch.destroy();
-        mSuggestionSearch.destroy();
+        mSearch.destroy();
         super.onDestroy();
     }
 
@@ -277,15 +410,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         @Override
         public void onReceiveLocation(BDLocation location) {
-            Log.d("MainActivity", String.valueOf(location.getLongitude()) + "---" +location.getLocType());
-            Log.d("MainActivity",location.getProvince()+location.getCity()+location.getDistrict()+location.getLocType());
-
+            //Log.d("MainActivity", String.valueOf(location.getLongitude()) + "---" +location.getLocType());
+            //Log.d("MainActivity",location.getProvince()+location.getCity()+location.getDistrict()+location.getLocType());
             // map view 销毁后不在处理新接收的位置
             if (location == null || mMapView == null) {
                 return;
             }
             mCurrentLat = location.getLatitude();
             mCurrentLon = location.getLongitude();
+            center = new LatLng(mCurrentLon,mCurrentLat);
+            southwest = new LatLng( mCurrentLon+0.024896, mCurrentLat );
+            northeast = new LatLng( mCurrentLon+0.024896, mCurrentLat+0.034639);
+            searchBound = new LatLngBounds.Builder().include(southwest).include(northeast).build();
             mCurrentAccracy = location.getRadius();
             locData = new MyLocationData.Builder()
                     .accuracy(location.getRadius())
@@ -323,7 +459,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         View parent = LayoutInflater.from(MainActivity.this).inflate(R.layout.activity_main, null);
         popupWindow.showAtLocation(parent, Gravity.RIGHT, 0, 0);
         WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
-        layoutParams.alpha = 0.7f;
         getWindow().setAttributes(layoutParams);
         //dismiss时恢复原样
         popupWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
@@ -409,10 +544,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      */
     public void searchButtonProcess(View v) {
         searchType = 1;
-
         String citystr = editCity.getText().toString();
         String keystr = keyWorldsView.getText().toString();
-
+        Log.d("MainAcitivity",citystr+":"+keystr);
         mPoiSearch.searchInCity((new PoiCitySearchOption())
                 .city(citystr)
                 .keyword(keystr)
@@ -426,6 +560,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @param v    检索Button
      */
     public void  searchNearbyProcess(View v) {
+        mBaiduMap.clear();
         searchType = 2;
         PoiNearbySearchOption nearbySearchOption = new PoiNearbySearchOption()
                 .keyword(keyWorldsView.getText().toString())
@@ -438,10 +573,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mPoiSearch.searchNearby(nearbySearchOption);
     }
 
-    public void goToNextPage(View v) {
-        loadIndex++;
-        searchButtonProcess(null);
-    }
 
     /**
      * 响应区域搜索按钮点击事件
@@ -449,6 +580,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * @param v    检索Button
      */
     public void searchBoundProcess(View v) {
+        mBaiduMap.clear();
         searchType = 3;
         mPoiSearch.searchInBound(new PoiBoundSearchOption()
                 .bound(searchBound)
@@ -463,6 +595,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      *
      * @param result    Poi检索结果，包括城市检索，周边检索，区域检索
      */
+    @Override
     public void onGetPoiResult(PoiResult result) {
         if (result == null || result.error == SearchResult.ERRORNO.RESULT_NOT_FOUND) {
             Toast.makeText(MainActivity.this, "未找到结果", Toast.LENGTH_LONG).show();
@@ -510,6 +643,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
      * V5.2.0版本之后，还方法废弃，使用{@link #onGetPoiDetailResult(PoiDetailSearchResult)}代替
      * @param result    POI详情检索结果
      */
+    @Override
     public void onGetPoiDetailResult(PoiDetailResult result) {
         if (result.error != SearchResult.ERRORNO.NO_ERROR) {
             Toast.makeText(MainActivity.this, "抱歉，未找到结果", Toast.LENGTH_SHORT).show();
@@ -625,5 +759,182 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onGetPoiIndoorResult(PoiIndoorResult poiIndoorResult) {
 
+    }
+    @Override
+    public void onGetWalkingRouteResult(WalkingRouteResult walkingRouteResult) {
+        List<WalkingRouteLine> walkingRouteLines = walkingRouteResult.getRouteLines();
+        if (walkingRouteResult ==null || walkingRouteResult.error != SearchResult.ERRORNO.NO_ERROR){
+            Toast.makeText(MainActivity.this,"抱歉，未找到结果",Toast.LENGTH_SHORT).show();
+        }
+        if (walkingRouteResult.error == SearchResult.ERRORNO.AMBIGUOUS_ROURE_ADDR){
+            Toast.makeText(MainActivity.this,"抱歉，输入地址有歧义",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (walkingRouteResult.error == SearchResult.ERRORNO.NO_ERROR){
+        //创建WalkingRouteOverlay实例
+        WalkingRouteOverlay overlay = new WalkingRouteOverlay(mBaiduMap);
+        if (walkingRouteLines.size() > 0) {
+            //获取路径规划数据,(以返回的第一条数据为例)
+            //为WalkingRouteOverlay实例设置路径数据
+            Log.d("MainActivity",walkingRouteResult.getRouteLines().size()+"");
+            for (int i=0;i<walkingRouteResult.getRouteLines().size();i++){
+                overlay.setData(walkingRouteResult.getRouteLines().get(i));
+                //在地图上绘制DrivingRouteOverlay
+                overlay.addToMap();
+                overlay.zoomToSpan();
+            }
+        }
+        for (WalkingRouteLine walkingRouteLine : walkingRouteLines){
+          showPopRouteInfo("步行",start,terminal,walkingRouteLine.getDuration(),walkingRouteLine.getDistance());
+        }
+        }
+    }
+    @Override
+    public void onGetBikingRouteResult(BikingRouteResult bikingRouteResult) {
+        List<BikingRouteLine> bikingRouteLines = bikingRouteResult.getRouteLines();
+        if (bikingRouteResult ==null || bikingRouteResult.error != SearchResult.ERRORNO.NO_ERROR){
+            Toast.makeText(MainActivity.this,"抱歉，未找到结果",Toast.LENGTH_SHORT).show();
+        }
+        if (bikingRouteResult.error == SearchResult.ERRORNO.AMBIGUOUS_ROURE_ADDR){
+            Toast.makeText(MainActivity.this,"抱歉，输入地址有歧义。",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (bikingRouteResult.error == SearchResult.ERRORNO.NO_ERROR){
+        //创建BikingRouteOverlay实例
+        BikingRouteOverlay overlay = new BikingRouteOverlay(mBaiduMap);
+        if (bikingRouteLines.size() > 0) {
+            //获取路径规划数据,(以返回的第一条路线为例）
+            //为BikingRouteOverlay实例设置数据
+            for (int i=0;i<bikingRouteResult.getRouteLines().size();i++){
+                overlay.setData(bikingRouteResult.getRouteLines().get(i));
+                //在地图上绘制DrivingRouteOverlay
+                overlay.addToMap();
+                overlay.zoomToSpan();
+            }
+        }
+            for (BikingRouteLine bikingRouteLine : bikingRouteLines){
+                showPopRouteInfo("骑行",start,terminal,bikingRouteLine.getDuration(),bikingRouteLine.getDistance());
+            }
+        }
+    }
+
+    @Override
+    public void onGetDrivingRouteResult(DrivingRouteResult drivingRouteResult) {
+        List<DrivingRouteLine> drivingRouteLines = drivingRouteResult.getRouteLines();
+        if (drivingRouteResult ==null || drivingRouteResult.error != SearchResult.ERRORNO.NO_ERROR){
+            Toast.makeText(MainActivity.this,"抱歉，未找到结果",Toast.LENGTH_SHORT).show();
+        }
+        if (drivingRouteResult.error == SearchResult.ERRORNO.AMBIGUOUS_ROURE_ADDR){
+            Toast.makeText(MainActivity.this,"抱歉",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (drivingRouteResult.error == SearchResult.ERRORNO.NO_ERROR){
+        //创建DrivingRouteOverlay实例
+        DrivingRouteOverlay overlay = new DrivingRouteOverlay(mBaiduMap);
+        if (drivingRouteLines.size() > 0) {
+            //获取路径规划数据,(以返回的第一条路线为例）
+            //为DrivingRouteOverlay实例设置数据
+            for (int i=0;i<drivingRouteResult.getRouteLines().size();i++){
+                overlay.setData(drivingRouteResult.getRouteLines().get(i));
+            //在地图上绘制DrivingRouteOverlay
+                overlay.addToMap();
+                overlay.zoomToSpan();
+            }
+        }
+            for (DrivingRouteLine drivingRouteLine : drivingRouteLines){
+                showPopRouteInfo("驾车",start,terminal,drivingRouteLine.getDuration(),drivingRouteLine.getDistance());
+            }
+        }
+    }
+
+    @Override
+    public void onGetTransitRouteResult(TransitRouteResult transitRouteResult) {
+        List<TransitRouteLine> transitRouteLines = transitRouteResult.getRouteLines();
+        if (transitRouteResult == null || transitRouteResult.error != SearchResult.ERRORNO.NO_ERROR){
+            Toast.makeText(MainActivity.this,"抱歉，未找到结果",Toast.LENGTH_SHORT).show();
+        }
+        if (transitRouteResult.error == SearchResult.ERRORNO.AMBIGUOUS_ROURE_ADDR){
+            Toast.makeText(MainActivity.this,"抱歉,输入地址有歧义。",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (transitRouteResult.error == SearchResult.ERRORNO.NO_ERROR){
+        //创建TransitRouteOverlay实例
+        TransitRouteOverlay overlay = new TransitRouteOverlay(mBaiduMap);
+        //获取路径规划数据,(以返回的第一条数据为例)
+        //为TransitRouteOverlay实例设置路径数据
+        if (transitRouteLines.size() > 0) {
+            overlay.setData(transitRouteResult.getRouteLines().get(0));
+            //在地图上绘制TransitRouteOverlay
+            overlay.addToMap();
+            overlay.zoomToSpan();
+        }
+            for (TransitRouteLine transitRouteLine : transitRouteLines){
+                showPopRouteInfo("公交",start,terminal,transitRouteLine.getDuration(),transitRouteLine.getDistance());
+            }
+        }
+    }
+
+    @Override
+    public void onGetIndoorRouteResult(IndoorRouteResult indoorRouteResult) {
+        //创建IndoorRouteOverlay实例
+        IndoorRouteOverlay overlay = new IndoorRouteOverlay(mBaiduMap);
+        if (indoorRouteResult.getRouteLines() != null && indoorRouteResult.getRouteLines().size() > 0) {
+            //获取室内路径规划数据（以返回的第一条路线为例）
+            //为IndoorRouteOverlay实例设置数据
+            overlay.setData(indoorRouteResult.getRouteLines().get(0));
+            //在地图上绘制IndoorRouteOverlay
+            overlay.addToMap();
+        }
+    }
+
+    @Override
+    public void onGetMassTransitRouteResult(MassTransitRouteResult massTransitRouteResult) {
+        //创建MassTransitRouteOverlay实例
+        MassTransitRouteOverlay overlay = new MassTransitRouteOverlay(mBaiduMap);
+        if (massTransitRouteResult.getRouteLines() != null && massTransitRouteResult.getRouteLines().size() > 0){
+            //获取路线规划数据（以返回的第一条数据为例）
+            //为MassTransitRouteOverlay设置数据
+            overlay.setData(massTransitRouteResult.getRouteLines().get(0));
+            //在地图上绘制Overlay
+            overlay.addToMap();
+        }
+    }
+
+    private void showPopRouteInfo(String way,String start,String terminal,float duration,float distance) {
+        //实例化对象
+        PopupWindow popupWindow = new PopupWindow(MainActivity.this);
+        //设置属性
+        View view = LayoutInflater.from(this).inflate(R.layout.poprouteinfo, null);
+        EditText startText = (EditText) view.findViewById(R.id.start);
+        EditText wayText = (EditText) view.findViewById(R.id.way) ;
+        EditText terminalText = (EditText) view.findViewById(R.id.terminal);
+        EditText durationText = (EditText) view.findViewById(R.id.duration);
+        EditText distanceText = (EditText) view.findViewById(R.id.distance);
+
+        popupWindow.setContentView(view);
+        popupWindow.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        popupWindow.setWidth(ViewGroup.LayoutParams.MATCH_PARENT);
+        //点击外部消失
+        popupWindow.setOutsideTouchable(true);
+        wayText.setText(way);
+        startText.setText(start);
+        terminalText.setText(terminal);
+        durationText.setText(duration/3600+"h");
+        distanceText.setText(distance/1000+"km");
+        //获得当前窗体属性
+        View parent = LayoutInflater.from(MainActivity.this).inflate(R.layout.activity_main, null);
+        popupWindow.showAtLocation(parent, Gravity.BOTTOM, 0, 0);
+        WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+        getWindow().setAttributes(layoutParams);
+        //dismiss时恢复原样
+        popupWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
+
+            @Override
+            public void onDismiss() {
+                WindowManager.LayoutParams lp = getWindow().getAttributes();
+                lp.alpha = 1f;
+                getWindow().setAttributes(lp);
+            }
+        });
     }
 }

@@ -16,6 +16,7 @@ import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.search.route.DrivingRouteLine;
 import com.baidu.mapapi.search.route.DrivingRouteLine.DrivingStep;
+import com.example.a11322.lifetrace.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +61,7 @@ public class DrivingRouteOverlay extends OverlayManager {
                                                     .rotate((360 - step.getDirection()))
                                                             .extraInfo(b)
                                                                     .icon(BitmapDescriptorFactory
-                                                                            .fromAssetWithDpi("Icon_line_node.png")));
+                                                                            .fromResource(R.drawable.icon_line_node)));
                 }
                 // 最后路段绘制出口点
                 if (mRouteLine.getAllStep().indexOf(step) == (mRouteLine
@@ -70,7 +71,7 @@ public class DrivingRouteOverlay extends OverlayManager {
                                     .anchor(0.5f, 0.5f)
                                             .zIndex(10)
                                                     .icon(BitmapDescriptorFactory
-                                                            .fromAssetWithDpi("Icon_line_node.png")));
+                                                            .fromResource(R.drawable.icon_line_node)));
 
                 }
             }
@@ -81,7 +82,7 @@ public class DrivingRouteOverlay extends OverlayManager {
                     .position(mRouteLine.getStarting().getLocation())
                             .icon(getStartMarker() != null ? getStartMarker() :
                                     BitmapDescriptorFactory
-                                            .fromAssetWithDpi("Icon_start.png")).zIndex(10));
+                                            .fromResource(R.drawable.icon_start)).zIndex(10));
         }
         if (mRouteLine.getTerminal() != null) {
             overlayOptionses
@@ -89,7 +90,7 @@ public class DrivingRouteOverlay extends OverlayManager {
                             .position(mRouteLine.getTerminal().getLocation())
                                     .icon(getTerminalMarker() != null ? getTerminalMarker() :
                                             BitmapDescriptorFactory
-                                                    .fromAssetWithDpi("Icon_end.png"))
+                                                    .fromResource(R.drawable.icon_end))
                                                             .zIndex(10));
         }
         // poly line
@@ -172,11 +173,11 @@ public class DrivingRouteOverlay extends OverlayManager {
     }
     public List<BitmapDescriptor> getCustomTextureList() {
         ArrayList<BitmapDescriptor> list = new ArrayList<BitmapDescriptor>();
-        list.add(BitmapDescriptorFactory.fromAsset("Icon_road_blue_arrow.png"));
-        list.add(BitmapDescriptorFactory.fromAsset("Icon_road_green_arrow.png"));
-        list.add(BitmapDescriptorFactory.fromAsset("Icon_road_yellow_arrow.png"));
-        list.add(BitmapDescriptorFactory.fromAsset("Icon_road_red_arrow.png"));
-        list.add(BitmapDescriptorFactory.fromAsset("Icon_road_nofocus.png"));
+        list.add(BitmapDescriptorFactory.fromResource(R.drawable.icon_road_blue_arrow));
+        list.add(BitmapDescriptorFactory.fromResource(R.drawable.icon_road_green_arrow));
+        list.add(BitmapDescriptorFactory.fromResource(R.drawable.icon_road_yellow_arrow));
+        list.add(BitmapDescriptorFactory.fromResource(R.drawable.icon_road_red_arrow));
+        list.add(BitmapDescriptorFactory.fromResource(R.drawable.icon_road_nofocus));
         return list;
     }
     /**

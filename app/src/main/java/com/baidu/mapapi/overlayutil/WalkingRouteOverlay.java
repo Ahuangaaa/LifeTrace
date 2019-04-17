@@ -15,6 +15,7 @@ import com.baidu.mapapi.map.Polyline;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.model.LatLng;
 import com.baidu.mapapi.search.route.WalkingRouteLine;
+import com.example.a11322.lifetrace.R;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +61,7 @@ public class WalkingRouteOverlay extends OverlayManager {
                                                     .anchor(0.5f, 0.5f)
                                                             .extraInfo(b)
                                                                     .icon(BitmapDescriptorFactory
-                                                                            .fromAssetWithDpi("Icon_line_node.png")));
+                                                                            .fromResource(R.drawable.icon_line_node)));
                 }
 
                 // 最后路段绘制出口点
@@ -71,7 +72,7 @@ public class WalkingRouteOverlay extends OverlayManager {
                                     .anchor(0.5f, 0.5f)
                                             .zIndex(10)
                                                     .icon(BitmapDescriptorFactory
-                                                            .fromAssetWithDpi("Icon_line_node.png")));
+                                                            .fromResource(R.drawable.icon_line_node)));
 
                 }
             }
@@ -82,7 +83,7 @@ public class WalkingRouteOverlay extends OverlayManager {
                     .position(mRouteLine.getStarting().getLocation())
                             .icon(getStartMarker() != null ? getStartMarker() :
                                     BitmapDescriptorFactory
-                                            .fromAssetWithDpi("Icon_start.png")).zIndex(10));
+                                            .fromResource(R.drawable.icon_start)).zIndex(10));
         }
         // terminal
         if (mRouteLine.getTerminal() != null) {
@@ -91,7 +92,7 @@ public class WalkingRouteOverlay extends OverlayManager {
                             .position(mRouteLine.getTerminal().getLocation())
                                     .icon(getTerminalMarker() != null ? getTerminalMarker() :
                                             BitmapDescriptorFactory
-                                                    .fromAssetWithDpi("Icon_end.png"))
+                                                    .fromResource(R.drawable.icon_end))
                                                             .zIndex(10));
         }
 
