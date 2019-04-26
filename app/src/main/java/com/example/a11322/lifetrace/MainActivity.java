@@ -1,10 +1,15 @@
 package com.example.a11322.lifetrace;
 
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.Message;
+import android.os.PowerManager;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -27,6 +32,7 @@ import android.widget.RadioGroup;
 import android.widget.RadioGroup.OnCheckedChangeListener;
 import android.widget.Toast;
 
+import com.baidu.mapapi.SDKInitializer;
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
@@ -87,6 +93,11 @@ import com.baidu.mapapi.search.sug.SuggestionSearch;
 import com.baidu.mapapi.search.sug.SuggestionSearchOption;
 import com.baidu.mapapi.overlayutil.*;
 
+import com.baidu.trace.*;
+import com.example.a11322.lifetrace.track.TrackApplication;
+//import com.baidu.track.R;
+
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -130,14 +141,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private LatLng southwest;
     private LatLng northeast;
     private LatLngBounds searchBound;
+    public Context context = null;
     private int searchType = 0;//搜索的类型，在显示时区分
     // UI相关
     boolean isFirstLoc = true; // 是否首次定位
     private MyLocationData locData;
-    private float direction;
+
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        context = getApplicationContext();
+        SDKInitializer.initialize(context);
         setContentView(R.layout.activity_main);
         mMapView = (MapView) findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
@@ -258,6 +274,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case R.id.User_Center:
                 Intent intent2 = new Intent(MainActivity.this,UserCenterActivity.class);
                 startActivity(intent2);
+                break;
+            case R.id.Use_Trace:
+                Intent intent3 = new Intent(MainActivity.this,com.example.a11322.lifetrace.track.activity.MainActivity.class);
+                startActivity(intent3);
+                break;
                 default:
         }
         return true;
@@ -937,4 +958,5 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
     }
+
 }

@@ -15,14 +15,18 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
+    <!-- 用于加快GPS首次定位-->
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS"/>
+    <!-- 用于Android M及以上系统，申请加入忽略电池优化白名单-->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
-        android:name=".InitalizerSDK"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:name = ".track.TrackApplication">
         <meta-data
             android:name="android.max_aspect"
             android:value="2.1" />
@@ -44,6 +48,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".track.activity.MainActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.TracingActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.TrackQueryActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.FenceActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.BosActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.CacheManageActivity"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".track.activity.FAQActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".track.activity.TracingOptionsActivity"
+            android:screenOrientation="portrait"/>
+        <activity
+            android:name=".track.activity.TrackQueryOptionsActivity"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".UserCenterActivity"
             android:label="User Center" />
@@ -51,12 +76,17 @@
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="j8Gc9WmT9RcWHZiinKAmXHTgSsv88cNo" />
-
         <service
             android:name="com.baidu.location.f"
             android:enabled="true"
             android:process=":remote" />
 
+        <service
+            android:name="com.baidu.trace.LBSTraceService"
+            android:enabled="true"
+            android:exported="true"
+            android:process=":remote"
+            />
         <activity android:name=".SearchActivity"></activity>
     </application>
 

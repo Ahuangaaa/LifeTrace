@@ -41,8 +41,8 @@ public class LoginActivity extends AppCompatActivity {
         Login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EditText account = findViewById(R.id.email);
-                EditText password = findViewById(R.id.password);
+                EditText account = (EditText) findViewById(R.id.email);
+                EditText password = (EditText) findViewById(R.id.password);
                 String acc = account.getText().toString();
                 String paswd = password.getText().toString();
                 if (TextUtils.isEmpty(acc)||TextUtils.isEmpty(paswd)){
@@ -58,7 +58,7 @@ public class LoginActivity extends AppCompatActivity {
     }
     //设置修改密码点击事件
   public void forgetpassword(){
-       TextView fgps = findViewById(R.id.forget_password);
+       TextView fgps = (TextView) findViewById(R.id.forget_password);
        SpannableStringBuilder style = new SpannableStringBuilder();
        style.append("forgent password?");
       ForegroundColorSpan foregroundColorSpan = new ForegroundColorSpan(Color.parseColor("#0000FF"));

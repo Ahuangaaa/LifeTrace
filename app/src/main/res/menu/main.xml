@@ -6,4 +6,7 @@
     <item
         android:id="@+id/User_Center"
         android:title="UserCenter"/>
+    <item
+        android:id="@+id/Use_Trace"
+        android:title="UseTrace"/>
 </menu>
